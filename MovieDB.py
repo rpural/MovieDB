@@ -8,7 +8,6 @@ import sys
 
 class UI_movieEntry(QDialog):
     def __init__(self, parent):
-        #print("init called")
         super(UI_movieEntry, self).__init__(parent)
         self.parent = parent
         self.db = parent.conn
@@ -21,9 +20,17 @@ class UI_movieEntry(QDialog):
         self.closeButton.clicked.connect(self.closeMovieEntry)
         self.saveButton.clicked.connect(self.saveMovieEntry)
 
+        # if editing, show the previous data
+        if self.parent.editing:
+            self.bookEdit.setText(self.parent.olddata[0])
+            self.pageEdit.setText(self.parent.olddata[1])
+            self.mediaEdit.setText(self.parent.olddata[2])
+            title = self.parent.olddata[3].replace(" / ", "\n")
+            self.titleEdit.setText(title)
+            self.closeButton.setText("Cancel")
+
         # Show the setWindow
         self.show()
-        print("should be showing")
 
     def closeMovieEntry(self):
         self.close()
@@ -34,14 +41,20 @@ class UI_movieEntry(QDialog):
         format = self.mediaEdit.text()
         title = self.titleEdit.toPlainText()
         title = title.replace("\n", " / ")
-        print(f"save-> {self.db} - {book} {page}: {format} - {title}")
+        cur = self.db.cursor()
         if self.parent.editing:
+            oldtitle = self.parent.olddata[3].replace("\n", " / ")
+            update = f"UPDATE movies SET book={book}, page={page}, format=\"{format}\", title=\"{title}\" WHERE book={self.parent.olddata[0]} AND page={self.parent.olddata[1]} AND format=\"{self.parent.olddata[2]}\" AND title=\"{oldtitle}\";"
+            cur.execute(update)
+            self.db.commit()
             self.close()
         else:
+            cur.execute(f"INSERT INTO movies (book, page, format, title) VALUES ({book}, {page}, \"{format}\", \"{title}\");")
             self.bookEdit.setText("")
             self.pageEdit.setText("")
             self.mediaEdit.setText("")
             self.titleEdit.setText("")
+            self.db.commit()
 
 class UI(QMainWindow):
     def __init__(self):
@@ -79,7 +92,7 @@ class UI(QMainWindow):
         '''
 
         # Connect up actions
-        self.tableWidget.cellChanged.connect(self.entryChanged)
+        self.tableWidget.itemDoubleClicked.connect(self.editEntry)
         self.addMovie.clicked.connect(self.addMovieClicked)
         self.deleteMovie.clicked.connect(self.deleteMovieClicked)
         self.sortOrder.currentIndexChanged.connect(self.sortOrderChanged)
@@ -94,14 +107,14 @@ class UI(QMainWindow):
         self.show()
 
     def addMovieClicked(self):
-        print("in addMovieClicked")
         self.editing = False  # We're adding movies, not editing already existing ones
         self.UI_movie = UI_movieEntry(self)
         self.show()
         self.UI_movie.exec()
+        self.loadData()
+        self.setRecordCount()
 
     def deleteMovieClicked(self):
-        print("deleteMovieClicked")
         sel = self.tableWidget.selectedItems()
         if sel:
             rows = sorted(list(set([r.row() for r in sel])), reverse=True)
@@ -111,14 +124,12 @@ class UI(QMainWindow):
                 for i in range(4):
                     data.append(self.tableWidget.item(row, i).text())
                 data[3] = data[3].replace("\n", " / ")
-                # print(f"row: {row} - bk {data[0]} pg {data[1]} {data[2]}: {data[3]}")
                 sql = f"DELETE FROM movies WHERE book={data[0]} and page={data[1]} and title=\"{data[3]}\";"
                 cur.execute(sql)
             self.conn.commit()
             self.loadData()
 
     def searchChanged(self):
-        print("searchChanged")
         searchText = self.searchTerm.text()
         items = self.tableWidget.findItems(searchText, Qt.MatchContains)
         if items:
@@ -126,18 +137,29 @@ class UI(QMainWindow):
             self.tableWidget.setCurrentItem(item)
 
     def clearSearchClicked(self):
-        print("clearSearchClicked")
         self.searchTerm.setText("")
 
     def sortOrderChanged(self):
-        print("sortOrderChanged")
         selected = self.sortOrder.currentIndex()
         if (selected == 1 and self.sortByTitle) or (selected == 0 and not self.sortByTitle):
             self.sortByTitle = not self.sortByTitle
         self.loadData()
 
-    def entryChanged(self):
-        pass
+    def editEntry(self, entryClicked):
+        sel = self.tableWidget.selectedItems()
+        if sel:
+            rows = list(set([r.row() for r in sel]))
+            if len(rows) == 1:
+                self.olddata = []
+                for i in range(4):
+                    self.olddata.append(self.tableWidget.item(rows[0], i).text())
+                self.olddata[3] = self.olddata[3].replace("\n", " / ")
+                self.editing = True
+                self.UI_movie = UI_movieEntry(self)
+                self.show()
+                self.UI_movie.exec()
+                self.loadData()
+                self.setRecordCount()
 
     def loadData(self):
         ct = self.setRecordCount()
