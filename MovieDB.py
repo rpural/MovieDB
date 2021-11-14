@@ -1,16 +1,53 @@
 #! /usr/bin/env python3
 
-from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QComboBox, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QMainWindow, QDialog, QApplication, QLabel, QComboBox, QTableWidget, QTableWidgetItem, QLineEdit, QTextEdit, QPushButton
 from PyQt5.QtCore import Qt
 from PyQt5 import uic
 import sqlite3
 import sys
 
+class UI_movieEntry(QDialog):
+    def __init__(self, parent):
+        #print("init called")
+        super(UI_movieEntry, self).__init__(parent)
+        self.parent = parent
+        self.db = parent.conn
+        self.setModal(True)
+
+        # Load UI file
+        uic.loadUi("movieEntry.ui", self)
+
+        # Define the Actions
+        self.closeButton.clicked.connect(self.closeMovieEntry)
+        self.saveButton.clicked.connect(self.saveMovieEntry)
+
+        # Show the setWindow
+        self.show()
+        print("should be showing")
+
+    def closeMovieEntry(self):
+        self.close()
+
+    def saveMovieEntry(self):
+        book = self.bookEdit.text()
+        page = self.pageEdit.text()
+        format = self.mediaEdit.text()
+        title = self.titleEdit.toPlainText()
+        title = title.replace("\n", " / ")
+        print(f"save-> {self.db} - {book} {page}: {format} - {title}")
+        if self.parent.editing:
+            self.close()
+        else:
+            self.bookEdit.setText("")
+            self.pageEdit.setText("")
+            self.mediaEdit.setText("")
+            self.titleEdit.setText("")
+
 class UI(QMainWindow):
     def __init__(self):
         super(UI, self).__init__()
 
-        # Load ui file
+        # Load the UI file
         uic.loadUi("MovieDB.ui", self)
 
         # set up the table dimensions
@@ -57,9 +94,14 @@ class UI(QMainWindow):
         self.show()
 
     def addMovieClicked(self):
-        pass
+        print("in addMovieClicked")
+        self.editing = False  # We're adding movies, not editing already existing ones
+        self.UI_movie = UI_movieEntry(self)
+        self.show()
+        self.UI_movie.exec()
 
     def deleteMovieClicked(self):
+        print("deleteMovieClicked")
         sel = self.tableWidget.selectedItems()
         if sel:
             rows = sorted(list(set([r.row() for r in sel])), reverse=True)
@@ -76,6 +118,7 @@ class UI(QMainWindow):
             self.loadData()
 
     def searchChanged(self):
+        print("searchChanged")
         searchText = self.searchTerm.text()
         items = self.tableWidget.findItems(searchText, Qt.MatchContains)
         if items:
@@ -83,9 +126,11 @@ class UI(QMainWindow):
             self.tableWidget.setCurrentItem(item)
 
     def clearSearchClicked(self):
+        print("clearSearchClicked")
         self.searchTerm.setText("")
 
     def sortOrderChanged(self):
+        print("sortOrderChanged")
         selected = self.sortOrder.currentIndex()
         if (selected == 1 and self.sortByTitle) or (selected == 0 and not self.sortByTitle):
             self.sortByTitle = not self.sortByTitle
@@ -133,7 +178,7 @@ class UI(QMainWindow):
     def printReports(self):
         self.moviesByTitle()
         self.moviesByBook()
-        self.statusbar.showMessage("Saved to movieList.txt and bookList.txt")
+        self.statusbar.showMessage("Reports saved to movieList.txt and bookList.txt")
 
     def reportHeader(self, output, firstCall=False):
     	''' Create the page header for the movie report, sorted by title.
@@ -224,4 +269,4 @@ class UI(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     UIWindow = UI()
-    app.exec_()
+    app.exec()
