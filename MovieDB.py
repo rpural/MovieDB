@@ -5,6 +5,9 @@ from PyQt5.QtCore import Qt
 from PyQt5 import uic
 import sqlite3
 import sys
+import os
+
+prog_path = os.path.dirname(os.path.abspath(__file__))
 
 class UI_movieEntry(QDialog):
     def __init__(self, parent):
@@ -14,7 +17,7 @@ class UI_movieEntry(QDialog):
         self.setModal(True)
 
         # Load UI file
-        uic.loadUi("movieEntry.ui", self)
+        uic.loadUi(prog_path+"/movieEntry.ui", self)
 
         # Define the Actions
         self.closeButton.clicked.connect(self.closeMovieEntry)
@@ -61,7 +64,7 @@ class UI(QMainWindow):
         super(UI, self).__init__()
 
         # Load the UI file
-        uic.loadUi("MovieDB.ui", self)
+        uic.loadUi(prog_path+"/MovieDB.ui", self)
 
         # set up the table dimensions
         self.tableWidget.setColumnWidth(0, 50)
