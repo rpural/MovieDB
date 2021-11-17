@@ -100,8 +100,15 @@
       <height>32</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Add new movies...</string>
+    </property>
     <property name="text">
-     <string>+</string>
+     <string/>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>add.png</normaloff>add.png</iconset>
     </property>
    </widget>
    <widget class="QPushButton" name="deleteMovie">
@@ -113,8 +120,15 @@
       <height>32</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Remove the selected movie(s)</string>
+    </property>
     <property name="text">
-     <string>-</string>
+     <string/>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>remove.png</normaloff>remove.png</iconset>
     </property>
    </widget>
    <widget class="QLabel" name="label_3">
@@ -159,8 +173,15 @@
       <height>32</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Save printable copy of the movie list on disk</string>
+    </property>
     <property name="text">
      <string>Print</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>printer.png</normaloff>printer.png</iconset>
     </property>
    </widget>
    <widget class="QLabel" name="label_4">
@@ -191,7 +212,7 @@
      <rect>
       <x>460</x>
       <y>30</y>
-      <width>21</width>
+      <width>31</width>
       <height>21</height>
      </rect>
     </property>
@@ -200,8 +221,15 @@
       <pointsize>11</pointsize>
      </font>
     </property>
+    <property name="toolTip">
+     <string>Delete the search text</string>
+    </property>
     <property name="text">
-     <string>x</string>
+     <string/>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>delete.png</normaloff>delete.png</iconset>
     </property>
    </widget>
   </widget>
