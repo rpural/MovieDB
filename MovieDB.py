@@ -8,9 +8,197 @@ from PyQt5 import uic
 import sqlite3
 import sys
 import os
-from datetime import datetime
+from fpdf import FPDF
+from datetime import datetime, date
 
 prog_path = os.path.dirname(os.path.abspath(__file__))
+
+class Title_report (FPDF):
+    def __init__(self, recordCount):
+        super().__init__("P", "mm", "Letter")
+        self.record_count = recordCount
+        self.first_page = True
+        self.set_fill_color(220,220,220)
+        self.fill = False
+        self.add_page()
+
+    def page_break_needed(self,titles):
+        number_lines = len(titles.split("\n"))
+        # 279.5mm = height of an 11 in page
+        # 20mm = an estimate of the size of the footer
+        page_left = 279.5 - self.get_y() - 20
+        if (number_lines * 6) > page_left:
+            return True
+        return False
+
+
+    def header(self):
+        self.image(prog_path + '/MovieDB.JPG',170,10,20)
+        self.set_font('Times', 'B',15)
+        self.cell(80)
+        self.cell(30,10,'Movies by Title',0,0,'C')
+        self.ln()
+        self.set_font('Times', 'B', 10)
+        self.cell(15, 10, "Book",0,0,'R')
+        self.cell(15, 10, "Page",0,0,'R')
+        self.cell(15, 10, "Fmt",0,0,'L')
+        self.cell(0, 10, "Title",0,0,'L')
+        self.ln(10)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial','I',8)
+        self.cell(40,10,f"{date.today()}",0,0,'L')
+        self.cell(40,10,f"page {self.page_no()}",0,0,'C')
+        self.cell(0, 10, f"total entries: {self.record_count}")
+
+    def detail(self, row):
+        titles = "\n".join((row['title'].split("/")))
+        if self.first_page:
+            self.set_font('Arial', 'B', 15)
+            self.cell(45,15," ",0,0,'L',False)
+            self.cell(0,15,"#",0,0,'L',False)
+            self.ln(15)
+            self.first_page = False
+            self.character = '#'
+        else:
+            start_char = row['sort_title'][:1]
+            if start_char.lower() in "abcdefghijklmnopqrstuvwxyz":
+                if start_char.lower() != self.character:
+                    if self.page_break_needed(titles + '\n\n\n'):
+                        self.add_page()
+                    self.character = start_char.lower()
+                    self.set_font('Arial', 'B', 15)
+                    self.cell(45, 15, " ",0,0,'L')
+                    self.cell(0, 15, self.character.upper(),0,0,'L')
+                    self.ln(15)
+
+        if self.page_break_needed(titles):
+            self.add_page()
+        self.set_font('Arial','',10)
+        self.cell(15,5,str(row['book']),0,0,'R',self.fill)
+        self.cell(15,5,str(row['page']),0,0,'R',self.fill)
+        self.cell(15,5,str(row['format']),0,0,'L',self.fill)
+        self.multi_cell(0,5,titles,0,'L',self.fill)
+        self.fill = not self.fill
+
+
+class Detail_report (FPDF):
+    def __init__(self, recordCount):
+        super().__init__("P", "mm", "Letter")
+        self.record_count = recordCount
+        self.first_page = True
+        self.set_fill_color(220,220,220)
+        self.fill = False
+        self.add_page()
+
+    def page_break_needed(self,titles):
+        number_lines = len(titles.split("\n"))
+        # 279.5mm = height of an 11 in page
+        # 20mm = an estimate of the size of the footer
+        page_left = 279.5 - self.get_y() - 20
+        if (number_lines * 6) > page_left:
+            return True
+        return False
+
+
+    def header(self):
+        self.image(prog_path + '/MovieDB.JPG',170,10,20)
+        self.set_font('Times', 'B',15)
+        self.cell(80)
+        self.cell(30,10,'Movies with Additional Detail',0,0,'C')
+        self.ln()
+        self.set_font('Times', 'B', 10)
+        self.cell(15, 10, "Book",0,0,'R')
+        self.cell(15, 10, "Page",0,0,'R')
+        self.cell(15, 10, "Fmt",0,0,'L')
+        self.cell(0, 10, "Title",0,0,'L')
+        self.ln(10)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial','I',8)
+        self.cell(40,10,f"{date.today()}",0,0,'L')
+        self.cell(40,10,f"page {self.page_no()}",0,0,'C')
+        self.cell(0, 10, f"total entries: {self.record_count}")
+
+    def detail(self, row):
+        titles = "\n".join((row['title'].split("/")))
+        if row["actors"]:
+            actors = "\n".join((row["actors"].split("/")))
+        if row["description"]:
+            description = "\n".join((row["description"].split("/")))
+        if self.first_page:
+            self.set_font('Arial', 'B', 15)
+            self.cell(45,15," ",0,0,'L',False)
+            self.cell(0,15,"#",0,0,'L',False)
+            self.ln(15)
+            self.first_page = False
+            self.character = '#'
+        else:
+            start_char = row['sort_title'][:1]
+            if start_char.lower() in "abcdefghijklmnopqrstuvwxyz":
+                if start_char.lower() != self.character:
+                    if self.page_break_needed(titles + '\n\n\n'):
+                        self.add_page()
+                    self.character = start_char.lower()
+                    self.set_font('Arial', 'B', 15)
+                    self.cell(45, 15, " ",0,0,'L')
+                    self.cell(0, 15, self.character.upper(),0,0,'L')
+                    self.ln(15)
+
+        if self.page_break_needed(titles):
+            self.add_page()
+        self.set_font('Arial','',10)
+        self.cell(15,5,str(row['book']),0,0,'R',self.fill)
+        self.cell(15,5,str(row['page']),0,0,'R',self.fill)
+        self.cell(15,5,str(row['format']),0,0,'L',self.fill)
+        self.multi_cell(0,5,titles,0,'L',self.fill)
+        if row["actors"]:
+            self.ln(0)
+            self.cell(55,5,"- ",0,0,'R')
+            self.multi_cell(0,5,actors,0,'L',self.fill)
+        if row["description"]:
+            self.ln(0)
+            self.cell(55,5,"- ",0,0,'R')
+            self.multi_cell(0,5,description,0,'L',self.fill)
+        self.fill = not self.fill
+
+
+class Book_report (FPDF):
+    def __init__(self, recordCount):
+        super().__init__("P", "mm", "Letter")
+        self.record_count = recordCount
+        self.add_page()
+
+    def header(self):
+        self.image(prog_path + '/MovieDB.JPG',170,10,20)
+        self.set_font('Times', 'B',15)
+        self.cell(80)
+        self.cell(30,10,'Movies by Book and Page',0,0,'C')
+        self.ln()
+        self.set_font('Times', 'B', 10)
+        self.cell(15, 10, "Book",0,0,'R')
+        self.cell(15, 10, "Page",0,0,'R')
+        self.cell(15, 10, "Fmt",0,0,'L')
+        self.cell(0, 10, "Title",0,0,'L')
+        self.ln(10)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial','I',8)
+        self.cell(40,10,f"{date.today()}",0,0,'L')
+        self.cell(40,10,f"page {self.page_no()}",0,0,'C')
+        self.cell(0, 10, f"total entries: {self.record_count}")
+
+    def detail(self, row):
+        titles = "\n".join((row['title'].split("/")))
+        self.set_font('Arial','',10)
+        self.cell(15,5,str(row['book']),0,0,'R')
+        self.cell(15,5,str(row['page']),0,0,'R')
+        self.cell(15,5,str(row['format']),0,0,'L')
+        self.multi_cell(0,5,titles,0,'L',False)
+
 
 class UI_movieEntry(QDialog):
     def __init__(self, parent):
@@ -202,7 +390,7 @@ class UI(QMainWindow):
     def loadData(self):
         ct = self.setRecordCount()
         if self.sortByTitle:  # set the display order
-            sql = "SELECT * from movies order by replace(replace(replace(title,'The ',''),'A ',''),'An ',''), book, page"
+            sql = "SELECT *, replace(replace(replace(title,'The ',''),'A ',''),'An ','') as sort_title from movies order by sort_title, book, page"
         else:
             sql = "SELECT * FROM movies ORDER BY book, page, title"
         cur = self.conn.cursor()
@@ -237,97 +425,37 @@ class UI(QMainWindow):
         return recs
 
 
-    ''' Define the printed reports '''
     def printReports(self):
-        self.moviesByTitle()
-        self.moviesByBook()
-        self.statusbar.showMessage("Reports saved to movieList.txt and bookList.txt")
+        record_count = self.setRecordCount()
+        ''' Generate the Movies sorted by title report '''
+        report = Title_report(record_count)
+        output_file = "MovieDB.Title.pdf"
+        sql = "SELECT *, replace(replace(replace(title,'The ',''),'A ',''),'An ','') as sort_title from movies order by sort_title, book, page"
+        cur = self.conn.cursor()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            report.detail(row)
+        report.output(output_file)
 
-    def reportHeader(self, output, firstCall=False):
-    	''' Create the page header for the movie report, sorted by title.
+        ''' Generate the Movies with Details report '''
+        report = Detail_report(record_count)
+        output_file = "MovieDB.Detail.pdf"
+        for row in rows:
+            report.detail(row)
+        report.output(output_file)
 
-    	    Use a local static variable (reportHeader.pagect) to number the pages.
-    		The firstCall parameter, set to True, will cause page numbering
-    		to begin at one again, so that multiple reports can be generated
-    		using the same header routine.
-    	'''
-    	if firstCall:  # Start of a new report. Set page number to 1
-            self.pagect = 1
-            self.today = datetime.now().strftime("%m/%d/%Y")
-    	else:
-    		self.pagect += 1
-
-    	print("\n" * 3, file=output)
-    	print(" " * 4, f"     Movies, sorted by title         {self.today}   pg {self.pagect:4d}\n", file=output)
-    	print("     Bk Pg  fmt     Title", file=output)
-    	return 6 # number of lines consumed
-
-
-    def bookHeader(self, output, firstCall=False):
-    	''' Create the page header for the movie report, sorted by book and page.
-
-    	    Use a local static variable (bookHeader.pagect) to number the pages.
-    		The firstCall parameter, set to True, will cause page numbering
-    		to begin at one again, so that multiple reports can be generated
-    		using the same header routine.
-    	'''
-    	if firstCall:
-            self.pagect = 1
-            self.today = datetime.now().strftime("%m/%d/%Y")
-    	else:
-    		self.pagect += 1
-
-    	print("\n" * 3, file=output)
-    	print(" " * 4, f"     Movies, sorted by book and page         {self.today}      pg {self.pagect:4d}\n", file=output)
-    	print("     Bk Pg  fmt     Title", file=output)
-    	return 6
-
-
-    def reportDetail(self, output, header, row, firstCall=False):
-    	''' Create a report detail line, accounting for page overflows.
-
-    		Use 56 lines as a complete page.
-    		The firstCall parameter, when True, will initialize a new report.
-
-    		output is the open file to write to.
-    		header is the function to call to generate a new page header.
-    		row is the SQLite3 row object to write to the report.
-    	'''
-    	if firstCall:  # Start a new report. Set line count to 0
-    		self.linect = header(output, firstCall=True)
-
-    	if self.linect > 56:
-    		print("\f", file=output)  # formfeed to next page
-    		self.linect = header(output)
-
-    	titles = row['title'].split("/")
-    	print(f"     {row['book']:2d} {row['page']:2d} ({row['format']:4s})   {titles[0]}", file=output)
-    	if len(titles) > 1:
-    		for title in titles[1:]:
-    			print(f"                 + {title}", file=output)
-    	self.linect += len(titles)
-
-
-    def moviesByTitle(self):
-    	''' Generate the Movies sorted by title report, save in movieList.txt '''
-    	with open("movieList.txt", "w") as out:
-            c = self.conn.cursor()
-            first = True
-            for row in c.execute("SELECT * from movies order by replace(replace(replace(title,'The ',''),'A ',''),'An ',''), book, page"):
-                self.reportDetail(out, self.reportHeader, row, firstCall=first)
-                first = False
-            print(f"\n     Movie count: {self.setRecordCount()}", file=out)
-
-
-    def moviesByBook(self):
-    	''' Generate the Movies by book, page report, save in bookList.txt '''
-    	with open("bookList.txt", "w") as out:
-            c = self.conn.cursor()
-            first = True
-            for row in c.execute("SELECT * from movies order by book, page"):
-                self.reportDetail(out, self.bookHeader, row, firstCall=first)
-                first=False
-            print(f"\n     Movie count: {self.setRecordCount()}", file=out)
+        ''' Generate the Movies by Book and Page report '''
+        report = Book_report(record_count)
+        output_file = "MovieDB.Books.pdf"
+        sql = "SELECT * FROM movies ORDER BY book, page, title"
+        cur = self.conn.cursor()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            report.detail(row)
+        report.output(output_file)
+        self.statusbar.showMessage("Reports saved to MovieDB.<report>.pdf")
 
 
 # Initialize the app
@@ -335,4 +463,3 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     UIWindow = UI()
     app.exec()
-
