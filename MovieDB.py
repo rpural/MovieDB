@@ -11,7 +11,9 @@ import os
 from fpdf import FPDF
 from datetime import datetime, date
 
+version = "2.0"
 prog_path = os.path.dirname(os.path.abspath(__file__))
+
 
 class Title_report (FPDF):
     def __init__(self, recordCount):
@@ -30,7 +32,6 @@ class Title_report (FPDF):
         if (number_lines * 6) > page_left:
             return True
         return False
-
 
     def header(self):
         self.image(prog_path + '/MovieDB.JPG',170,10,20)
@@ -101,7 +102,6 @@ class Detail_report (FPDF):
             return True
         return False
 
-
     def header(self):
         self.image(prog_path + '/MovieDB.JPG',170,10,20)
         self.set_font('Times', 'B',15)
@@ -169,13 +169,23 @@ class Book_report (FPDF):
     def __init__(self, recordCount):
         super().__init__("P", "mm", "Letter")
         self.record_count = recordCount
+        self.book_number = 1
         self.add_page()
+
+    def page_break_needed(self,titles):
+        number_lines = len(titles.split("\n"))
+        # 279.5mm = height of an 11 in page
+        # 20mm = an estimate of the size of the footer
+        page_left = 279.5 - self.get_y() - 20
+        if (number_lines * 6) > page_left:
+            return True
+        return False
 
     def header(self):
         self.image(prog_path + '/MovieDB.JPG',170,10,20)
         self.set_font('Times', 'B',15)
         self.cell(80)
-        self.cell(30,10,'Movies by Book and Page',0,0,'C')
+        self.cell(30,10,f'Movies - Book {self.book_number}',0,0,'C')
         self.ln()
         self.set_font('Times', 'B', 10)
         self.cell(15, 10, "Book",0,0,'R')
@@ -193,6 +203,9 @@ class Book_report (FPDF):
 
     def detail(self, row):
         titles = "\n".join((row['title'].split("/")))
+        if row['book'] != self.book_number:
+            self.book_number = row['book']
+            self.add_page()
         self.set_font('Arial','',10)
         self.cell(15,5,str(row['book']),0,0,'R')
         self.cell(15,5,str(row['page']),0,0,'R')
@@ -423,7 +436,6 @@ class UI(QMainWindow):
         recs = cur.fetchone()[0]
         self.movieCount.setText(str(recs))
         return recs
-
 
     def printReports(self):
         record_count = self.setRecordCount()
